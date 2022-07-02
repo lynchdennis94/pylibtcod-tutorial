@@ -4,6 +4,7 @@ from typing import Tuple, Iterator, TYPE_CHECKING, List
 import random
 import tcod
 
+import entity_factory
 from game_map import GameMap
 import tile_types
 
@@ -34,9 +35,10 @@ class RectangularRoom:
         return self.x1 <= other.x2 and self.x2 >= other.x1 and self.y1 <= other.y2 and self.y2 >= other.y1
 
 
-def generate_dungeon(max_rooms: int, room_min_size: int, room_max_size: int, map_width: int, map_height: int, player: Entity) -> GameMap:
+def generate_dungeon(max_rooms: int, room_min_size: int, room_max_size: int, map_width: int, map_height: int,
+                     max_monsters_per_room: int, player: Entity) -> GameMap:
     """Generate a new dungeon map"""
-    dungeon = GameMap(map_width, map_height)
+    dungeon = GameMap(map_width, map_height, entities={player})
 
     rooms: List[RectangularRoom] = []
 
@@ -50,7 +52,7 @@ def generate_dungeon(max_rooms: int, room_min_size: int, room_max_size: int, map
         new_room = RectangularRoom(x, y, room_width, room_height)
 
         if any(new_room.intersects(other_room) for other_room in rooms):
-            continue # Don't add this room
+            continue  # Don't add this room
 
         dungeon.tiles[new_room.inner] = tile_types.floor
 
@@ -59,6 +61,8 @@ def generate_dungeon(max_rooms: int, room_min_size: int, room_max_size: int, map
         else:
             for x, y in tunnel_between(rooms[-1].center, new_room.center):
                 dungeon.tiles[x, y] = tile_types.floor
+
+        place_entities(room=new_room, dungeon=dungeon, max_monsters_per_room=max_monsters_per_room)
 
         rooms.append(new_room)
 
@@ -80,3 +84,17 @@ def tunnel_between(start: Tuple[int, int], end: Tuple[int, int]) -> Iterator[Tup
         yield x, y
     for x, y in tcod.los.bresenham((corner_x, corner_y), (x2, y2)).tolist():
         yield x, y
+
+
+def place_entities(room: RectangularRoom, dungeon: GameMap, max_monsters_per_room: int) -> None:
+    number_of_monsters = random.randint(0, max_monsters_per_room)
+
+    for i in range(number_of_monsters):
+        x = random.randint(room.x1 + 1, room.x2 - 1)
+        y = random.randint(room.y1 + 1, room.y2 - 1)
+
+        if not any(entity.x == x and entity.y == y for entity in dungeon.entities):
+            if random.random() < 0.8:
+                entity_factory.orc.spawn(dungeon, x, y)
+            else:
+                entity_factory.troll.spawn(dungeon, x, y)

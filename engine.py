@@ -1,10 +1,9 @@
-from typing import Set, Iterable, Any
+from typing import Iterable, Any
 
 from tcod import Console
 from tcod.context import Context
 from tcod.map import compute_fov
 
-from actions import MovementAction, EscapeAction
 from entity import Entity
 from game_map import GameMap
 from input_handlers import EventHandler
@@ -13,8 +12,7 @@ from input_handlers import EventHandler
 class Engine:
     """Class that holds the engine actions needed to make the game play"""
 
-    def __init__(self, entities: Set[Entity], event_handler: EventHandler, player: Entity, game_map: GameMap):
-        self.entities = entities
+    def __init__(self, event_handler: EventHandler, player: Entity, game_map: GameMap):
         self.event_handler = event_handler
         self.player = player
         self.game_map = game_map
@@ -42,11 +40,6 @@ class Engine:
         """Render entities on the console"""
         # Draw the map
         self.game_map.render(console)
-
-        # Add the individual entities
-        for entity in self.entities:
-            if self.game_map.visible[entity.x, entity.y]:
-                console.print(entity.x, entity.y, entity.char, fg=entity.color)
 
         context.present(console)
         console.clear()
